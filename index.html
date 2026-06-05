@@ -1,0 +1,665 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Kowsalya — To-Do List App</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Syne:wght@700;800&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet" />
+
+  <style>
+    :root {
+      --bg:        #f0f4ff;
+      --bg-card:   #ffffff;
+      --bg-acc:    #e8edf8;
+      --fg:        #0f1729;
+      --fg-muted:  #5a6480;
+      --fg-subtle: #9aa0b4;
+      --accent:    #4f46e5;
+      --accent-g:  rgba(79,70,229,.15);
+      --green:     #22c55e;
+      --red:       #ef4444;
+      --orange:    #f59e0b;
+      --border:    rgba(15,23,41,.09);
+      --shadow:    0 4px 32px rgba(79,70,229,.10);
+      --r:         1rem;
+      --t:         .3s cubic-bezier(.4,0,.2,1);
+    }
+    [data-theme="dark"] {
+      --bg:        #0a0d1a;
+      --bg-card:   #111628;
+      --bg-acc:    #1a1f35;
+      --fg:        #eef0f8;
+      --fg-muted:  #8b93b0;
+      --fg-subtle: #4a5270;
+      --accent:    #6366f1;
+      --accent-g:  rgba(99,102,241,.18);
+      --border:    rgba(238,240,248,.08);
+      --shadow:    0 4px 40px rgba(0,0,0,.5);
+    }
+
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    html { scroll-behavior: smooth; }
+    body {
+      font-family: 'DM Sans', sans-serif;
+      background: var(--bg);
+      color: var(--fg);
+      min-height: 100vh;
+      transition: background var(--t), color var(--t);
+    }
+
+    /* BG DECORATION */
+    body::before {
+      content: '';
+      position: fixed;
+      top: -200px; left: 50%;
+      transform: translateX(-50%);
+      width: 800px; height: 800px;
+      background: radial-gradient(circle, var(--accent-g) 0%, transparent 70%);
+      pointer-events: none; z-index: 0;
+    }
+
+    .wrap {
+      position: relative; z-index: 1;
+      width: min(640px, 94vw);
+      margin-inline: auto;
+      padding-block: 3rem 5rem;
+    }
+
+    /* HEADER */
+    .header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 2.5rem;
+    }
+
+    .header-left h1 {
+      font-family: 'Syne', sans-serif;
+      font-size: 2rem;
+      font-weight: 800;
+      letter-spacing: -.03em;
+    }
+
+    .header-left h1 span { color: var(--accent); }
+
+    .header-left p {
+      font-size: .85rem;
+      color: var(--fg-muted);
+      margin-top: .2rem;
+    }
+
+    .theme-btn {
+      width: 2.6rem; height: 2.6rem;
+      border-radius: 50%;
+      border: 1.5px solid var(--border);
+      background: var(--bg-card);
+      cursor: pointer;
+      font-size: 1.15rem;
+      display: grid; place-items: center;
+      transition: all var(--t);
+      color: var(--fg);
+      box-shadow: var(--shadow);
+    }
+    .theme-btn:hover { border-color: var(--accent); transform: rotate(20deg); }
+
+    /* STATS ROW */
+    .stats {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: .75rem;
+      margin-bottom: 1.75rem;
+    }
+
+    .stat-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: var(--r);
+      padding: 1rem;
+      text-align: center;
+      box-shadow: var(--shadow);
+      transition: all var(--t);
+    }
+
+    .stat-card:hover { transform: translateY(-2px); }
+
+    .stat-num {
+      font-family: 'Syne', sans-serif;
+      font-size: 1.8rem;
+      font-weight: 800;
+      display: block;
+      line-height: 1;
+      margin-bottom: .2rem;
+    }
+
+    .stat-lbl { font-size: .75rem; color: var(--fg-muted); font-weight: 500; }
+    .stat-card.total  .stat-num { color: var(--accent); }
+    .stat-card.active .stat-num { color: var(--orange); }
+    .stat-card.done   .stat-num { color: var(--green); }
+
+    /* ADD FORM */
+    .add-form {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: var(--r);
+      padding: 1.25rem;
+      margin-bottom: 1.25rem;
+      box-shadow: var(--shadow);
+      display: flex;
+      gap: .75rem;
+      align-items: center;
+    }
+
+    .add-input {
+      flex: 1;
+      border: none;
+      outline: none;
+      background: var(--bg-acc);
+      color: var(--fg);
+      font-family: 'DM Sans', sans-serif;
+      font-size: .95rem;
+      padding: .75rem 1rem;
+      border-radius: .65rem;
+      border: 1.5px solid transparent;
+      transition: all var(--t);
+    }
+
+    .add-input::placeholder { color: var(--fg-subtle); }
+    .add-input:focus { border-color: var(--accent); background: var(--bg-card); }
+
+    .add-btn {
+      width: 2.8rem; height: 2.8rem;
+      border-radius: .65rem;
+      border: none;
+      background: var(--accent);
+      color: #fff;
+      font-size: 1.4rem;
+      cursor: pointer;
+      display: grid; place-items: center;
+      transition: all var(--t);
+      flex-shrink: 0;
+      box-shadow: 0 4px 16px var(--accent-g);
+    }
+
+    .add-btn:hover { transform: scale(1.08); }
+    .add-btn:active { transform: scale(.96); }
+
+    /* FILTER TABS */
+    .filters {
+      display: flex;
+      gap: .5rem;
+      margin-bottom: 1.25rem;
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: var(--r);
+      padding: .4rem;
+      box-shadow: var(--shadow);
+    }
+
+    .filter-btn {
+      flex: 1;
+      padding: .55rem .5rem;
+      border: none;
+      border-radius: .6rem;
+      background: transparent;
+      color: var(--fg-muted);
+      font-family: 'DM Sans', sans-serif;
+      font-size: .85rem;
+      font-weight: 500;
+      cursor: pointer;
+      transition: all var(--t);
+    }
+
+    .filter-btn.active {
+      background: var(--accent);
+      color: #fff;
+      box-shadow: 0 2px 12px var(--accent-g);
+    }
+
+    .filter-btn:not(.active):hover { color: var(--accent); background: var(--accent-g); }
+
+    /* TASK LIST */
+    .task-list { display: flex; flex-direction: column; gap: .65rem; }
+
+    .task-item {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: var(--r);
+      padding: 1rem 1.1rem;
+      display: flex;
+      align-items: center;
+      gap: .85rem;
+      box-shadow: var(--shadow);
+      transition: all var(--t);
+      animation: slideIn .3s ease both;
+    }
+
+    .task-item:hover { transform: translateX(4px); border-color: var(--accent); }
+
+    .task-item.completed { opacity: .6; }
+    .task-item.completed .task-text { text-decoration: line-through; color: var(--fg-muted); }
+
+    @keyframes slideIn {
+      from { opacity: 0; transform: translateY(10px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+
+    /* Checkbox */
+    .task-check {
+      width: 1.35rem; height: 1.35rem;
+      border-radius: 50%;
+      border: 2px solid var(--border);
+      background: transparent;
+      cursor: pointer;
+      display: grid; place-items: center;
+      flex-shrink: 0;
+      transition: all var(--t);
+      font-size: .75rem;
+      color: transparent;
+    }
+
+    .task-check:hover { border-color: var(--green); }
+    .task-item.completed .task-check { background: var(--green); border-color: var(--green); color: #fff; }
+
+    /* Text */
+    .task-text {
+      flex: 1;
+      font-size: .95rem;
+      font-weight: 400;
+      line-height: 1.4;
+      word-break: break-word;
+      transition: all var(--t);
+      outline: none;
+    }
+
+    .task-text[contenteditable="true"] {
+      background: var(--bg-acc);
+      border-radius: .4rem;
+      padding: .2rem .5rem;
+      border: 1px solid var(--accent);
+    }
+
+    /* Actions */
+    .task-actions { display: flex; gap: .4rem; flex-shrink: 0; }
+
+    .act-btn {
+      width: 1.9rem; height: 1.9rem;
+      border-radius: .5rem;
+      border: 1px solid var(--border);
+      background: var(--bg-acc);
+      cursor: pointer;
+      display: grid; place-items: center;
+      font-size: .85rem;
+      transition: all var(--t);
+      color: var(--fg-muted);
+    }
+
+    .act-btn:hover { transform: scale(1.12); }
+    .act-btn.edit:hover  { border-color: var(--orange); color: var(--orange); }
+    .act-btn.del:hover   { border-color: var(--red); color: var(--red); }
+    .act-btn.save:hover  { border-color: var(--green); color: var(--green); }
+
+    /* EMPTY STATE */
+    .empty {
+      text-align: center;
+      padding: 3rem 1rem;
+      color: var(--fg-muted);
+      display: none;
+    }
+
+    .empty.show { display: block; }
+    .empty-icon { font-size: 3rem; margin-bottom: 1rem; }
+    .empty h3 { font-family: 'Syne', sans-serif; font-size: 1.1rem; margin-bottom: .4rem; }
+    .empty p { font-size: .88rem; }
+
+    /* CLEAR BTN */
+    .bottom-bar {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-top: 1.25rem;
+      padding: .75rem 1rem;
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: var(--r);
+      font-size: .82rem;
+      color: var(--fg-muted);
+    }
+
+    .clear-btn {
+      background: none;
+      border: none;
+      color: var(--red);
+      font-family: 'DM Sans', sans-serif;
+      font-size: .82rem;
+      cursor: pointer;
+      font-weight: 500;
+      transition: opacity var(--t);
+    }
+
+    .clear-btn:hover { opacity: .7; }
+
+    /* PROGRESS BAR */
+    .progress-wrap { margin-bottom: 1.25rem; }
+    .progress-label {
+      display: flex;
+      justify-content: space-between;
+      font-size: .8rem;
+      color: var(--fg-muted);
+      margin-bottom: .4rem;
+    }
+    .progress-track {
+      height: 6px;
+      background: var(--bg-acc);
+      border-radius: 999px;
+      overflow: hidden;
+    }
+    .progress-fill {
+      height: 100%;
+      background: linear-gradient(90deg, var(--accent), var(--green));
+      border-radius: 999px;
+      transition: width .6s cubic-bezier(.4,0,.2,1);
+      width: 0%;
+    }
+
+    /* FOOTER */
+    .footer {
+      text-align: center;
+      margin-top: 2.5rem;
+      font-size: .78rem;
+      color: var(--fg-subtle);
+    }
+  </style>
+</head>
+<body>
+
+<div class="wrap">
+
+  <!-- HEADER -->
+  <div class="header">
+    <div class="header-left">
+      <h1>My Tasks <span>✓</span></h1>
+      <p>by Kowsalya — Stay organised, stay ahead</p>
+    </div>
+    <button class="theme-btn" id="themeBtn">🌙</button>
+  </div>
+
+  <!-- STATS -->
+  <div class="stats">
+    <div class="stat-card total">
+      <span class="stat-num" id="statTotal">0</span>
+      <span class="stat-lbl">Total</span>
+    </div>
+    <div class="stat-card active">
+      <span class="stat-num" id="statActive">0</span>
+      <span class="stat-lbl">Active</span>
+    </div>
+    <div class="stat-card done">
+      <span class="stat-num" id="statDone">0</span>
+      <span class="stat-lbl">Completed</span>
+    </div>
+  </div>
+
+  <!-- PROGRESS -->
+  <div class="progress-wrap">
+    <div class="progress-label">
+      <span>Progress</span>
+      <span id="progressPct">0%</span>
+    </div>
+    <div class="progress-track">
+      <div class="progress-fill" id="progressFill"></div>
+    </div>
+  </div>
+
+  <!-- ADD FORM -->
+  <div class="add-form">
+    <input class="add-input" id="addInput" type="text" placeholder="Add a new task... then press Enter or +" maxlength="200" />
+    <button class="add-btn" id="addBtn" title="Add task">＋</button>
+  </div>
+
+  <!-- FILTER TABS -->
+  <div class="filters">
+    <button class="filter-btn active" data-filter="all">All</button>
+    <button class="filter-btn" data-filter="active">Active</button>
+    <button class="filter-btn" data-filter="completed">Completed</button>
+  </div>
+
+  <!-- TASK LIST -->
+  <div class="task-list" id="taskList"></div>
+
+  <!-- EMPTY STATE -->
+  <div class="empty" id="emptyState">
+    <div class="empty-icon">📭</div>
+    <h3>No tasks here!</h3>
+    <p>Add a task above to get started.</p>
+  </div>
+
+  <!-- BOTTOM BAR -->
+  <div class="bottom-bar">
+    <span id="remainingText">0 tasks remaining</span>
+    <button class="clear-btn" id="clearBtn">Clear completed</button>
+  </div>
+
+  <div class="footer">Built by Kowsalya · kowsalyakumar663@gmail.com · Thiranex Internship Task 3</div>
+
+</div>
+
+<script>
+  // ─── STATE ───────────────────────────────────────────────
+  let tasks  = JSON.parse(localStorage.getItem('kowsalya-tasks') || '[]');
+  let filter = 'all';
+  let editingId = null;
+
+  // ─── SAVE ────────────────────────────────────────────────
+  function save() {
+    localStorage.setItem('kowsalya-tasks', JSON.stringify(tasks));
+  }
+
+  // ─── GENERATE ID ─────────────────────────────────────────
+  function uid() {
+    return Date.now().toString(36) + Math.random().toString(36).slice(2);
+  }
+
+  // ─── CREATE TASK ─────────────────────────────────────────
+  function addTask(text) {
+    text = text.trim();
+    if (!text) return;
+    tasks.unshift({ id: uid(), text, completed: false, createdAt: Date.now() });
+    save();
+    render();
+  }
+
+  // ─── DELETE TASK ─────────────────────────────────────────
+  function deleteTask(id) {
+    tasks = tasks.filter(t => t.id !== id);
+    save();
+    render();
+  }
+
+  // ─── TOGGLE COMPLETE ─────────────────────────────────────
+  function toggleTask(id) {
+    const t = tasks.find(t => t.id === id);
+    if (t) { t.completed = !t.completed; save(); render(); }
+  }
+
+  // ─── UPDATE TASK TEXT ────────────────────────────────────
+  function updateTask(id, newText) {
+    newText = newText.trim();
+    if (!newText) { deleteTask(id); return; }
+    const t = tasks.find(t => t.id === id);
+    if (t) { t.text = newText; save(); }
+    editingId = null;
+    render();
+  }
+
+  // ─── CLEAR COMPLETED ─────────────────────────────────────
+  function clearCompleted() {
+    tasks = tasks.filter(t => !t.completed);
+    save();
+    render();
+  }
+
+  // ─── FILTER TASKS ────────────────────────────────────────
+  function filteredTasks() {
+    if (filter === 'active')    return tasks.filter(t => !t.completed);
+    if (filter === 'completed') return tasks.filter(t => t.completed);
+    return tasks;
+  }
+
+  // ─── RENDER ──────────────────────────────────────────────
+  function render() {
+    const list    = document.getElementById('taskList');
+    const empty   = document.getElementById('emptyState');
+    const visible = filteredTasks();
+
+    // Stats
+    const total     = tasks.length;
+    const completed = tasks.filter(t => t.completed).length;
+    const active    = total - completed;
+    document.getElementById('statTotal').textContent  = total;
+    document.getElementById('statActive').textContent = active;
+    document.getElementById('statDone').textContent   = completed;
+
+    // Progress
+    const pct = total === 0 ? 0 : Math.round((completed / total) * 100);
+    document.getElementById('progressFill').style.width = pct + '%';
+    document.getElementById('progressPct').textContent  = pct + '%';
+
+    // Remaining
+    document.getElementById('remainingText').textContent =
+      active === 1 ? '1 task remaining' : `${active} tasks remaining`;
+
+    // Empty state
+    empty.classList.toggle('show', visible.length === 0);
+
+    // Build list
+    list.innerHTML = '';
+    visible.forEach(task => {
+      const isEditing = editingId === task.id;
+
+      const item = document.createElement('div');
+      item.className = 'task-item' + (task.completed ? ' completed' : '');
+      item.dataset.id = task.id;
+
+      // Checkbox
+      const check = document.createElement('div');
+      check.className = 'task-check';
+      check.innerHTML = task.completed ? '✓' : '';
+      check.title = task.completed ? 'Mark incomplete' : 'Mark complete';
+      check.addEventListener('click', () => toggleTask(task.id));
+
+      // Text
+      const text = document.createElement('div');
+      text.className = 'task-text';
+      text.textContent = task.text;
+      if (isEditing) {
+        text.contentEditable = 'true';
+        setTimeout(() => {
+          text.focus();
+          // Place cursor at end
+          const range = document.createRange();
+          range.selectNodeContents(text);
+          range.collapse(false);
+          const sel = window.getSelection();
+          sel.removeAllRanges();
+          sel.addRange(range);
+        }, 0);
+        text.addEventListener('keydown', e => {
+          if (e.key === 'Enter') { e.preventDefault(); updateTask(task.id, text.textContent); }
+          if (e.key === 'Escape') { editingId = null; render(); }
+        });
+        text.addEventListener('blur', () => updateTask(task.id, text.textContent));
+      }
+
+      // Actions
+      const actions = document.createElement('div');
+      actions.className = 'task-actions';
+
+      if (isEditing) {
+        const saveBtn = document.createElement('button');
+        saveBtn.className = 'act-btn save';
+        saveBtn.innerHTML = '💾';
+        saveBtn.title = 'Save';
+        saveBtn.addEventListener('click', () => updateTask(task.id, text.textContent));
+        actions.appendChild(saveBtn);
+      } else {
+        const editBtn = document.createElement('button');
+        editBtn.className = 'act-btn edit';
+        editBtn.innerHTML = '✏️';
+        editBtn.title = 'Edit';
+        editBtn.addEventListener('click', () => { editingId = task.id; render(); });
+
+        const delBtn = document.createElement('button');
+        delBtn.className = 'act-btn del';
+        delBtn.innerHTML = '🗑️';
+        delBtn.title = 'Delete';
+        delBtn.addEventListener('click', () => deleteTask(task.id));
+
+        actions.appendChild(editBtn);
+        actions.appendChild(delBtn);
+      }
+
+      item.appendChild(check);
+      item.appendChild(text);
+      item.appendChild(actions);
+      list.appendChild(item);
+    });
+  }
+
+  // ─── EVENT LISTENERS ─────────────────────────────────────
+
+  // Add button
+  document.getElementById('addBtn').addEventListener('click', () => {
+    const input = document.getElementById('addInput');
+    addTask(input.value);
+    input.value = '';
+    input.focus();
+  });
+
+  // Enter key in input
+  document.getElementById('addInput').addEventListener('keydown', e => {
+    if (e.key === 'Enter') {
+      addTask(e.target.value);
+      e.target.value = '';
+    }
+  });
+
+  // Filter buttons
+  document.querySelectorAll('.filter-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      filter = btn.dataset.filter;
+      document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      render();
+    });
+  });
+
+  // Clear completed
+  document.getElementById('clearBtn').addEventListener('click', clearCompleted);
+
+  // Theme toggle
+  const themeBtn = document.getElementById('themeBtn');
+  let dark = false;
+  themeBtn.addEventListener('click', () => {
+    dark = !dark;
+    document.documentElement.dataset.theme = dark ? 'dark' : 'light';
+    themeBtn.textContent = dark ? '☀️' : '🌙';
+  });
+
+  // ─── INIT ─────────────────────────────────────────────────
+  // Add sample tasks if empty
+  if (tasks.length === 0) {
+    tasks = [
+      { id: uid(), text: 'Complete Thiranex Assignment 3 ✅', completed: false, createdAt: Date.now() },
+      { id: uid(), text: 'Push portfolio to GitHub Pages',    completed: true,  createdAt: Date.now() },
+      { id: uid(), text: 'Learn CSS Grid & Flexbox',          completed: true,  createdAt: Date.now() },
+    ];
+    save();
+  }
+
+  render();
+</script>
+
+</body>
+</html>
